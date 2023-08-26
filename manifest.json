@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Crunchyroll Subs on Dubs",
   "homepage_url": "https://github.com/crsod/crsod",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Load missing Crunchyroll subs onto dubs",
   "permissions": [
     "*://*.crunchyroll.com/*",
