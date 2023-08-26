@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "CrunchyRoll Subs on Dubs",
+  "version": "0.1.0",
+  "description": "Load missing CrunchyRoll subs onto dubs",
+  "permissions": [
+    "*://*.crunchyroll.com/*",
+    "*://cr-play-service.prd.crunchyrollsvc.com/*",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "background": {
+    "scripts": [
+      "src/background.js"
+    ]
+  }
+}
