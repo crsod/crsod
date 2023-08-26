@@ -1,14 +1,19 @@
 {
   "manifest_version": 2,
-  "name": "CrunchyRoll Subs on Dubs",
+  "name": "Crunchyroll Subs on Dubs",
+  "homepage_url": "https://github.com/crsod/crsod",
   "version": "0.1.0",
-  "description": "Load missing CrunchyRoll subs onto dubs",
+  "description": "Load missing Crunchyroll subs onto dubs",
   "permissions": [
     "*://*.crunchyroll.com/*",
     "*://cr-play-service.prd.crunchyrollsvc.com/*",
     "webRequest",
     "webRequestBlocking"
   ],
+  "icons": {
+    "48": "icon/48.png",
+    "128": "icon/128.png"
+  },
   "background": {
     "scripts": [
       "src/background.js"
