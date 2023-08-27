@@ -17,6 +17,7 @@
   },
   "background": {
     "scripts": [
+      "src/scriptutils.js",
       "src/background.js"
     ]
   }
