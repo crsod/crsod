@@ -1,4 +1,4 @@
 #!/bin/sh
 #exec web-ext build --ignore-files 'notes/' --filename crsod.zip --overwrite-dest
 set -x
-exec web-ext sign --ignore-files 'notes/' --api-key=$AMO_JWT_ISSUER --api-secret=$AMO_JWT_SECRET
+exec web-ext sign --ignore-files 'notes/' --ignore-files overview.png --api-key=$AMO_JWT_ISSUER --api-secret=$AMO_JWT_SECRET
