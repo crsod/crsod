@@ -1,0 +1,3 @@
+#!/bin/sh
+set -x
+exec web-ext sign --ignore-files 'notes/' --ignore-files overview.png --api-key=$AMO_JWT_ISSUER --api-secret=$AMO_JWT_SECRET
