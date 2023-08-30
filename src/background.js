@@ -25,8 +25,9 @@ const REPLACE_LANG = 'en-US';
 // number of bytes in length, it's assumed to be one of these near-empty
 // files and we switch on the subtitle replacement logic.
 //
-// TODO: something better. There's probably no single threshold which can work
-// for all media...
+// TODO: threshold should probably be a factor of the video duration to
+// account for very short or long videos which would naturally have a
+// shorter or longer script.
 const THRESHOLD = 7500;
 
 const DECODER = new TextDecoder("utf-8");
@@ -114,10 +115,11 @@ class PlayResponse {
         let sub_url = this.sub_asset_url(DUB_LANG);
         if (sub_url == null) {
             // There are no subs for the desired lang, so we ought to fetch some.
+            console.info(`Replacing subs for ${guid} as ${DUB_LANG} subs are missing entirely`);
             return true;
         }
 
-        // There are subs, but they might be crap, let's fetch and see.
+        // There are subs, but they might be no good, let's fetch and see.
         console.debug("Fetching sub asset:", sub_url);
         let assetResponse = await fetch(sub_url);
         let assetText = await assetResponse.text();
@@ -125,10 +127,10 @@ class PlayResponse {
 
         // The subs are assumed to be good only if the size is above the threshold.
         if (assetLength > THRESHOLD) {
-            console.info(`Not replacing subs for ${guid} as sub asset length of ${assetLength} exceeds threshold`);
+            console.info(`Not replacing subs for ${guid} as script length of ${assetLength} exceeds threshold`);
             return false;
         }
-        console.info(`Replacing subs for ${guid} from ${alt_guid} as sub asset length of ${assetLength} is below threshold`);
+        console.info(`Replacing subs for ${guid} from ${alt_guid} as script length of ${assetLength} is below threshold`);
         return true;
     }
 
@@ -144,6 +146,9 @@ class PlayResponse {
  * An interceptor for a single script request in progress.
  */
 class ScriptInterceptor {
+    /**
+     * @param {number} adjust A timing adjustment (ms) to be applied to this script.
+     */
     constructor(filter, request, adjust) {
         this.filter = filter;
         this.originalRequest = request;
@@ -155,26 +160,28 @@ class ScriptInterceptor {
      * Install callbacks/listeners to begin request processing.
      */
     start() {
-        let intercept = this;
-        this.filter.ondata = (event) => { intercept.ondata(event).catch((error) => this.onerror(error)) };
-        this.filter.onstop = (event) => { intercept.onstop() };
-        // TODO: onerror
+        this.filter.ondata = (event) => { this.ondata(event) };
+        this.filter.onstop = (event) => { this.onstop() };
+        this.filter.onerror = (event) => { this.onerror(this.filter.error) };
         console.debug("started intercept", this.filter);
     }
 
+    /**
+     * Called when script fetch has completed normally.
+     */
     onstop() {
         this.buf = this.adjust_times(this.buf);
         console.debug("Rewritten script", this.buf);
         this.filter.write(ENCODER.encode(this.buf));
         this.filter.disconnect();
 
-        console.info(`Script times adjusted by ${this.adjust}ms`);
+        console.debug(`Script times adjusted by ${this.adjust}ms`);
     }
 
     /**
-     * 
-     * @param {string} script 
-     * @returns 
+     * Try to adjust all Dialogue times in a script by this.adjust milliseconds.
+     * @param {string} script A script in SSA/ASS format
+     * @returns {string} a copy of script with times adjusted by this.adjust
      */
     adjust_times(script) {
         if (!this.format_ok(script)) {
@@ -186,8 +193,9 @@ class ScriptInterceptor {
     }
 
     /**
-     * 
-     * @param {string} line 
+     * Adjust timing on a single line of Dialogue. 
+     * @param {string} line A line from a script.
+     * @returns {string} A copy of the line with timing adjusted by this.adjust (ms)
      */
     adjust_line(line) {
         if (!line.startsWith("Dialogue: ")) {
@@ -208,14 +216,20 @@ class ScriptInterceptor {
     }
 
     /**
-     * 
-     * @param {string} str 
+     * Adjust timing on a single Dialogue-format timestamp.
+     * @param {string} str A timestamp, e.g. "0:04:08.01"
+     * @returns {string} A copy of the timestamp adjusted by this.adjust milliseconds
      */
     adjust_timestr(str) {
         let original_ms = script_parse_time(str);
         return script_render_time(original_ms + this.adjust);
     }
 
+    /**
+     * Check if script format is OK for us to work with.
+     * @param {string} script A full script in SSA/ASS format. 
+     * @returns {boolean} true if script format is acceptable
+     */
     format_ok(script) {
         let idx = script.indexOf("Format: Layer,Start,End,");
         return (idx != -1);
@@ -226,7 +240,7 @@ class ScriptInterceptor {
         this.filter.disconnect();
     }
 
-    async ondata(event) {
+    ondata(event) {
         let str = DECODER.decode(event.data, { "stream": true });
         this.buf = this.buf + str;
     }
@@ -246,10 +260,8 @@ class PlayInterceptor {
      * Install callbacks/listeners to begin request processing.
      */
     start() {
-        let intercept = this;
-        this.filter.ondata = (event) => { intercept.ondata(event).catch((error) => this.onerror(error)) };
-        // TODO: onerror
-        console.debug("started intercept", this.filter);
+        this.filter.ondata = (event) => { this.ondata(event).catch((error) => this.onerror(error)) };
+        this.filter.onerror = (event) => { this.onerror(this.filter.error) };
     }
 
     onerror(error) {
@@ -276,13 +288,10 @@ class PlayInterceptor {
         let altUrl = dubUrl.replace(guid, alt_guid);
         console.debug("Watching dub", guid, "loading subs from", alt_guid, "via", altUrl);
 
-
         let duration_adjust = await this.duration_adjust(guid, alt_guid);
 
-        console.debug("request obj", this.originalRequest);
         let response = await fetch(altUrl, { "headers": this.headers() });
         let responseJson = await response.json();
-        console.debug("Sub response:", responseJson);
 
         let sub = media._raw.subtitles[DUB_LANG];
         let altsub = responseJson.subtitles[DUB_LANG];
@@ -296,7 +305,10 @@ class PlayInterceptor {
 
         if (altsub.format == "ass") {
             let altsub_url = altsub.url;
-            TIMING_ADJUST[altsub_url] = script_adjust || duration_adjust;
+            let adjust_value = script_adjust || duration_adjust;
+            let adjust_how = script_adjust ? "script" : "duration";
+            console.info(`Adjusting script time by ${adjust_value} via ${adjust_how} comparison`)
+            TIMING_ADJUST[altsub_url] = adjust_value;
         } else {
             console.warn("Unknown sub format, skipping time adjust", altsub);
         }
@@ -314,6 +326,13 @@ class PlayInterceptor {
         return new Headers(headers);
     }
 
+    /**
+     * Calculate a timing adjustment by comparing two video durations.
+     *
+     * @param {string} guid GUID of first video (dub) 
+     * @param {string} alt_guid GUID of second video (sub)
+     * @returns {Promise<number>} difference in duration (milliseconds)
+     */
     async duration_adjust(guid, alt_guid) {
         let dub_url = `https://www.crunchyroll.com/content/v2/cms/objects/${guid}`;
         let sub_url = `https://www.crunchyroll.com/content/v2/cms/objects/${alt_guid}`;
@@ -366,12 +385,16 @@ class PlayInterceptor {
             return null
         }
 
-        console.info(`Adjust timing by ${adjust} via fuzzy script comparison`);
-
         return adjust;
     }
 }
 
+/**
+ * Listener for requests to script assets.
+ *
+ * Filters and rewrites responses if (and only if) there is a timing adjustment to be
+ * made on the script being fetched.
+ */
 function scriptListener(request) {
     let adjust = TIMING_ADJUST[request.url];
     if (!adjust) {
@@ -385,8 +408,11 @@ function scriptListener(request) {
     intercept.start();
 }
 
-
-
+/**
+ * Listener for requests to the /play endpoint.
+ *
+ * Filters and rewrites responses to add missing subtitle metadata.
+ */
 function playListener(request) {
     console.debug(`Loading (play): ${request.url}`);
 
@@ -396,10 +422,12 @@ function playListener(request) {
 }
 
 browser.webRequest.onBeforeRequest.addListener(scriptListener, {
+    // This is where script/subtitle assets are loaded from.
     urls: ["*://v.vrv.co/*"],
 }, ["blocking"]);
 
 browser.webRequest.onBeforeSendHeaders.addListener(playListener, {
+    // This is where video metadata is loaded from.
     urls: ["*://cr-play-service.prd.crunchyrollsvc.com/v1/*/web/firefox/play"],
 }, ["blocking", "requestHeaders"]);
 

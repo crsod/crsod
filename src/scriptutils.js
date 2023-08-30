@@ -131,7 +131,6 @@ function script_extract_text(line) {
 function script_match_text(script1, script2) {
     let dialog1 = script_dialogue_lines(script1);
     let dialog2 = script_dialogue_lines(script2);
-    console.debug("dialog example", dialog1);
 
     for (var i = 0; i < dialog1.length; ++i) {
         let line1 = dialog1[i];
