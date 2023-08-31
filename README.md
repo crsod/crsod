@@ -1,12 +1,16 @@
 # Crunchyroll Subs on Dubs
 
+[![Mozilla Add-on Version](https://img.shields.io/amo/v/crunchyroll-subs-on-dubs)](https://addons.mozilla.org/addon/crunchyroll-subs-on-dubs/)
+
 A Firefox extension to add missing subtitles onto Crunchyroll dubs.
 
 ![example](overview.png)
 
 ## Installation
 
-[Install from Github](https://github.com/crsod/crsod/releases/latest)
+[![Get the Add-on](notes/get-the-addon.png)](https://addons.mozilla.org/addon/crunchyroll-subs-on-dubs/)
+
+Or, [install from Github](https://github.com/crsod/crsod/releases/latest).
 
 ## Usage
 
