@@ -28,7 +28,16 @@ const REPLACE_LANG = 'en-US';
 // TODO: threshold should probably be a factor of the video duration to
 // account for very short or long videos which would naturally have a
 // shorter or longer script.
-const THRESHOLD = 7500;
+const SCRIPT_EMPTY_THRESHOLD = 7500;
+
+
+// Max time adjustment (on top of duration adjustment) we're willing to make
+// based on fuzzy script comparison.
+//
+// Since the comparison between two scripts can potentially go wrong, the idea
+// here is that a too large value is probably incorrect and it'd be better to
+// just go with duration-based adjustment in that case.
+const SCRIPT_MAX_ADJUST = 60000;
 
 const DECODER = new TextDecoder("utf-8");
 const ENCODER = new TextEncoder();
@@ -126,7 +135,7 @@ class PlayResponse {
         let assetLength = assetText.length;
 
         // The subs are assumed to be good only if the size is above the threshold.
-        if (assetLength > THRESHOLD) {
+        if (assetLength > SCRIPT_EMPTY_THRESHOLD) {
             console.info(`Not replacing subs for ${guid} as script length of ${assetLength} exceeds threshold`);
             return false;
         }
@@ -380,9 +389,9 @@ class PlayInterceptor {
             return null;
         }
 
-        if (Math.abs(adjust - duration_adjust) > 2000) {
+        if (Math.abs(adjust - duration_adjust) > SCRIPT_MAX_ADJUST) {
             console.warn(`Script adjustment of ${adjust} too far from duration adjustment of ${duration_adjust}`);
-            return null
+            return null;
         }
 
         return adjust;
