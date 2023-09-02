@@ -14,10 +14,10 @@ Or, [install from Github](https://github.com/crsod/crsod/releases/latest).
 
 ## Usage
 
-Set your Audio and Subtitles/CC in the Crunchyroll web player to English.
+Set your Audio and Subtitles/CC in the Crunchyroll web player to your preferred languages.
 
-If proper English subtitles/closed captions are not available on the dubbed video,
-they will be loaded from the original Japanese video instead.
+If proper subtitles captions are not available on the dubbed video for the language you've
+selected, they will be loaded from the original Japanese video instead.
 
 ## Known issues
 
@@ -38,7 +38,3 @@ match up.
 
 This addon tries to fix the timing in such cases,
 but this is based on heuristics and sometimes won't work.
-
-### Languages are hardcoded
-
-The addon assumes you're only interested in English audio and subtitles.
