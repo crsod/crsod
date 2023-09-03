@@ -221,6 +221,7 @@ class PlayInterceptor extends Interceptor {
                 media.set_subs(lang, alt_sub);
                 // Set up for timing adjustment.
                 let ctx = new ScriptRewriteContext(
+                    alt_sub.url,
                     media,
                     lang,
                     duration,
@@ -230,7 +231,7 @@ class PlayInterceptor extends Interceptor {
                     subs,
                     alt_subs,
                 );
-                ScriptInterceptor.register(alt_sub.url, ctx);
+                ScriptInterceptor.register(ctx);
             }
         });
 
