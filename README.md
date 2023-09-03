@@ -16,7 +16,7 @@ Or, [install from Github](https://github.com/crsod/crsod/releases/latest).
 
 Set your Audio and Subtitles/CC in the Crunchyroll web player to your preferred languages.
 
-If proper subtitles captions are not available on the dubbed video for the language you've
+If proper subtitles are not available on the dubbed video for the language you've
 selected, they will be loaded from the original Japanese video instead.
 
 ## Known issues
